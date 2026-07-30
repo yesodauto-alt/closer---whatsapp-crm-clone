@@ -17,6 +17,8 @@ import Chat from './pages/Chat'
 import Agents from './pages/Agents'
 import NotFound from './pages/NotFound'
 import Onboarding from './pages/Onboarding'
+import Products from './pages/Products'
+import Teams from './pages/Teams'
 
 const App = () => (
   <LanguageProvider>
@@ -38,12 +40,19 @@ const App = () => (
                 <Route path="contacts" element={<Contacts />} />
                 <Route path="chat/:id" element={<Chat />} />
                 <Route path="agents" element={<Agents />} />
+                <Route path="products" element={<Products />} />
+                <Route path="teams" element={<Teams />} />
               </Route>
 
               <Route path="/settings" element={<DashboardLayout />}>
                 <Route index element={<Settings />} />
               </Route>
 
+              <Route path="/dashboard" element={<Navigate to="/app" replace />} />
+              <Route path="/products" element={<Navigate to="/app/products" replace />} />
+              <Route path="/teams" element={<Navigate to="/app/teams" replace />} />
+              <Route path="/agents" element={<Navigate to="/app/agents" replace />} />
+              <Route path="/chat" element={<Navigate to="/app/contacts" replace />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </TooltipProvider>
