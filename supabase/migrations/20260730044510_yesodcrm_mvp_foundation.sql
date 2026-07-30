@@ -669,6 +669,8 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = ''
 AS $$
+DECLARE
+  yesod_org_id uuid;
 BEGIN
   INSERT INTO public.profiles (id, email, full_name)
   VALUES (
@@ -682,6 +684,22 @@ BEGIN
   )
   ON CONFLICT (id) DO UPDATE
   SET email = EXCLUDED.email;
+
+  IF lower(NEW.email) = 'yesod.auto@gmail.com' THEN
+    INSERT INTO public.organizations (name, slug, owner_user_id)
+    VALUES ('Yesod CRM', 'yesod-crm', NEW.id)
+    ON CONFLICT (slug) DO UPDATE
+    SET owner_user_id = EXCLUDED.owner_user_id,
+        updated_at = now()
+    RETURNING id INTO yesod_org_id;
+
+    INSERT INTO public.organization_members (organization_id, user_id, role, is_active)
+    VALUES (yesod_org_id, NEW.id, 'super_admin', true)
+    ON CONFLICT (organization_id, user_id) DO UPDATE
+    SET role = 'super_admin',
+        is_active = true,
+        updated_at = now();
+  END IF;
 
   INSERT INTO public.organization_members (organization_id, user_id, role, is_active)
   SELECT invite.organization_id, NEW.id, invite.role, true
