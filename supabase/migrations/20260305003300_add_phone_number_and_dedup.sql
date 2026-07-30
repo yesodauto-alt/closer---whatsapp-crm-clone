@@ -17,7 +17,7 @@ CREATE OR REPLACE FUNCTION public.merge_whatsapp_contacts(
 )
 RETURNS VOID
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY INVOKER
 SET search_path = ''
 AS $$
 BEGIN
