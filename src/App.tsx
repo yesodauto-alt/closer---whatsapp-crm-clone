@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AuthProvider } from '@/hooks/use-auth'
@@ -15,6 +15,8 @@ import Pipeline from './pages/Pipeline'
 import Settings from './pages/Settings'
 import Chat from './pages/Chat'
 import Agents from './pages/Agents'
+import Products from './pages/Products'
+import Teams from './pages/Teams'
 import NotFound from './pages/NotFound'
 import Onboarding from './pages/Onboarding'
 
@@ -38,6 +40,8 @@ const App = () => (
                 <Route path="contacts" element={<Contacts />} />
                 <Route path="chat/:id" element={<Chat />} />
                 <Route path="agents" element={<Agents />} />
+                <Route path="products" element={<Products />} />
+                <Route path="teams" element={<Teams />} />
               </Route>
 
               <Route path="/settings" element={<DashboardLayout />}>

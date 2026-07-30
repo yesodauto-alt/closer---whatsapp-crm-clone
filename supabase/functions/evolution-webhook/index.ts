@@ -1,10 +1,15 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { extractCanonicalPhone } from '../_shared/utils.ts'
-import { processAiResponse } from './ai-handler.ts'
 
 Deno.serve(async (req: Request) => {
   try {
+    const expectedSecret = Deno.env.get('EVOLUTION_API_KEY')
+    const receivedSecret = req.headers.get('x-webhook-secret')
+    if (!expectedSecret || receivedSecret !== expectedSecret) {
+      return new Response('Unauthorized', { status: 401 })
+    }
+
     const payload = await req.json()
 
     // Feature: Webhook Ingress Logging
@@ -281,20 +286,8 @@ Deno.serve(async (req: Request) => {
             )
           } else {
             console.log(
-              `[WEBHOOK] Triggering background AI task for contact ${contact.id} (remoteJid: ${effectiveJid})`,
+              `[WEBHOOK] Message stored without legacy Gemini auto-response for contact ${contact.id} (remoteJid: ${effectiveJid})`,
             )
-            if (
-              typeof (globalThis as any).EdgeRuntime !== 'undefined' &&
-              typeof (globalThis as any).EdgeRuntime.waitUntil === 'function'
-            ) {
-              ;(globalThis as any).EdgeRuntime.waitUntil(
-                processAiResponse(userId, contact.id, supabaseUrl, supabaseKey),
-              )
-            } else {
-              processAiResponse(userId, contact.id, supabaseUrl, supabaseKey).catch((err: any) =>
-                console.error('[WEBHOOK] Background AI task failed:', err),
-              )
-            }
           }
         }
       }

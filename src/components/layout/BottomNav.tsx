@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useLanguage } from '@/hooks/use-language'
-import { LayoutDashboard, Users, Settings as SettingsIcon, Columns } from 'lucide-react'
+import { Columns, LayoutDashboard, Package, Settings as SettingsIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export function BottomNav() {
@@ -10,7 +10,7 @@ export function BottomNav() {
   const navItems = [
     { name: t('overview_nav') || 'Overview', path: '/app', icon: LayoutDashboard },
     { name: t('pipeline_nav') || 'Pipeline', path: '/app/pipeline', icon: Columns },
-    { name: t('contacts_nav') || 'Contacts', path: '/app/contacts', icon: Users },
+    { name: 'Produtos', path: '/app/products', icon: Package },
     { name: t('settings_nav') || 'Settings', path: '/settings', icon: SettingsIcon },
   ]
 

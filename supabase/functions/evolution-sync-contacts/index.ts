@@ -65,6 +65,7 @@ Deno.serve(async (req: Request) => {
             webhook: {
               enabled: true,
               url: webhookUrl,
+              headers: { 'x-webhook-secret': evoKey },
               events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'CONTACTS_UPSERT'],
             },
           }),
