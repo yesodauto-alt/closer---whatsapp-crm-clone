@@ -16,6 +16,7 @@ import Settings from './pages/Settings'
 import Chat from './pages/Chat'
 import Agents from './pages/Agents'
 import Products from './pages/Products'
+import Teams from './pages/Teams'
 import NotFound from './pages/NotFound'
 import Onboarding from './pages/Onboarding'
 
@@ -40,6 +41,7 @@ const App = () => (
                 <Route path="chat/:id" element={<Chat />} />
                 <Route path="agents" element={<Agents />} />
                 <Route path="products" element={<Products />} />
+                <Route path="teams" element={<Teams />} />
               </Route>
 
               <Route path="/settings" element={<DashboardLayout />}>
