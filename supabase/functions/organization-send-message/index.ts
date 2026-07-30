@@ -61,7 +61,9 @@ Deno.serve(async (request) => {
   if (integrationError || !integration) return json({ error: 'Integração não encontrada' }, 404)
 
   const evolutionUrl = (
-    integration.evolution_api_url || Deno.env.get('EVOLUTION_API_URL') || ''
+    integration.evolution_api_url ||
+    Deno.env.get('EVOLUTION_API_URL') ||
+    ''
   ).replace(/\/$/, '')
   const evolutionKey = integration.evolution_api_key || Deno.env.get('EVOLUTION_API_KEY')
   if (!evolutionUrl || !evolutionKey || !integration.instance_name) {

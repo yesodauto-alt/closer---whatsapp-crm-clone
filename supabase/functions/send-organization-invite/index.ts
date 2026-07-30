@@ -27,7 +27,9 @@ Deno.serve(async (request) => {
     if (authError || !authData.user) throw new Error('Sessão inválida')
 
     const body = await request.json()
-    const email = String(body.email ?? '').trim().toLowerCase()
+    const email = String(body.email ?? '')
+      .trim()
+      .toLowerCase()
     const organizationId = String(body.organizationId ?? '')
     const teamId = String(body.teamId ?? '')
     const role = String(body.role ?? 'agent')

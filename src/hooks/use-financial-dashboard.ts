@@ -50,7 +50,10 @@ export function useFinancialDashboard() {
         (total, item) => total + Number(item.total || 0),
         0,
       )
-    const pipelineValue = opportunities.reduce((total, opportunity) => total + valueOf(opportunity), 0)
+    const pipelineValue = opportunities.reduce(
+      (total, opportunity) => total + valueOf(opportunity),
+      0,
+    )
     const won = opportunities.filter((opportunity) =>
       ['won', 'ganho', 'closed_won'].includes(opportunity.stage.toLowerCase()),
     )

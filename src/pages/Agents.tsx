@@ -120,13 +120,15 @@ export default function Agents() {
           </h2>
           <p className="text-muted-foreground mt-2 font-medium text-base">{t('agents_desc')}</p>
         </div>
-        {canConfigure && <Button
-          onClick={() => handleOpenDialog()}
-          className="rounded-full shadow-subtle px-6 h-12 font-semibold"
-        >
-          <Plus className="mr-2 h-5 w-5" />
-          {t('create_agent')}
-        </Button>}
+        {canConfigure && (
+          <Button
+            onClick={() => handleOpenDialog()}
+            className="rounded-full shadow-subtle px-6 h-12 font-semibold"
+          >
+            <Plus className="mr-2 h-5 w-5" />
+            {t('create_agent')}
+          </Button>
+        )}
       </div>
 
       {loading ? (
@@ -138,9 +140,11 @@ export default function Agents() {
           <CardContent className="flex flex-col items-center justify-center p-20 text-center">
             <h3 className="text-xl font-bold text-foreground mb-2">{t('no_agents_title')}</h3>
             <p className="text-muted-foreground max-w-sm mb-6">{t('no_agents_desc')}</p>
-            {canConfigure && <Button onClick={() => handleOpenDialog()} variant="outline" className="rounded-full">
-              {t('create_agent')}
-            </Button>}
+            {canConfigure && (
+              <Button onClick={() => handleOpenDialog()} variant="outline" className="rounded-full">
+                {t('create_agent')}
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -162,10 +166,12 @@ export default function Agents() {
                       </CardDescription>
                     </div>
                   </div>
-                  {canConfigure && <Switch
-                    checked={agent.is_active}
-                    onCheckedChange={() => toggleAgentStatus(agent.id, agent.is_active)}
-                  />}
+                  {canConfigure && (
+                    <Switch
+                      checked={agent.is_active}
+                      onCheckedChange={() => toggleAgentStatus(agent.id, agent.is_active)}
+                    />
+                  )}
                 </div>
               </CardHeader>
               <CardContent className="flex-1 pb-6">
@@ -178,25 +184,27 @@ export default function Agents() {
                   </p>
                 </div>
               </CardContent>
-              {canConfigure && <div className="border-t border-border/40 bg-muted/10 p-4 flex justify-end gap-2 shrink-0">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="rounded-full font-semibold"
-                  onClick={() => handleOpenDialog(agent)}
-                >
-                  <Edit2 className="h-4 w-4 mr-2" />
-                  {t('edit')}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
-                  onClick={() => deleteAgent(agent.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>}
+              {canConfigure && (
+                <div className="border-t border-border/40 bg-muted/10 p-4 flex justify-end gap-2 shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="rounded-full font-semibold"
+                    onClick={() => handleOpenDialog(agent)}
+                  >
+                    <Edit2 className="h-4 w-4 mr-2" />
+                    {t('edit')}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => deleteAgent(agent.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </Card>
           ))}
         </div>
@@ -285,7 +293,9 @@ export default function Agents() {
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="space-y-3">
-                  <Label htmlFor="tone" className="font-semibold">Tom de voz</Label>
+                  <Label htmlFor="tone" className="font-semibold">
+                    Tom de voz
+                  </Label>
                   <Input
                     id="tone"
                     value={formData.tone}
@@ -295,7 +305,9 @@ export default function Agents() {
                   />
                 </div>
                 <div className="space-y-3">
-                  <Label htmlFor="color" className="font-semibold">Cor</Label>
+                  <Label htmlFor="color" className="font-semibold">
+                    Cor
+                  </Label>
                   <Input
                     id="color"
                     type="color"
@@ -306,7 +318,9 @@ export default function Agents() {
                 </div>
               </div>
               <div className="space-y-3">
-                <Label htmlFor="objectives" className="font-semibold">Objetivos</Label>
+                <Label htmlFor="objectives" className="font-semibold">
+                  Objetivos
+                </Label>
                 <Textarea
                   id="objectives"
                   value={formData.objectives}
@@ -315,7 +329,9 @@ export default function Agents() {
                 />
               </div>
               <div className="space-y-3">
-                <Label htmlFor="restrictions" className="font-semibold">Restrições</Label>
+                <Label htmlFor="restrictions" className="font-semibold">
+                  Restrições
+                </Label>
                 <Textarea
                   id="restrictions"
                   value={formData.restrictions}

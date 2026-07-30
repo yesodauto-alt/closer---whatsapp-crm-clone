@@ -263,33 +263,36 @@ export default function Chat() {
                 </SelectContent>
               </Select>
             )}
-          <div className="flex items-center gap-2 bg-muted/30 p-1 sm:p-1.5 rounded-full border border-border/40">
-            <div className="hidden sm:flex items-center justify-center h-8 w-8 rounded-full bg-primary/10 text-primary shrink-0 ml-1">
-              <Sparkles className="h-4 w-4" />
-            </div>
-            <Select value={contact.ai_agent_id || 'none_disable'} onValueChange={handleAgentChange}>
-              <SelectTrigger className="w-[120px] sm:w-[160px] h-8 sm:h-9 rounded-full bg-transparent border-transparent shadow-none font-bold text-[11px] sm:text-[13px] hover:bg-muted/60 transition-colors focus:ring-0 focus:ring-offset-0 px-3">
-                <SelectValue placeholder={t('no_agent' as TranslationKey) || 'No Agent'} />
-              </SelectTrigger>
-              <SelectContent className="rounded-2xl border-border/60 shadow-elevation">
-                <SelectItem
-                  value="none_disable"
-                  className="font-bold text-muted-foreground text-xs sm:text-sm cursor-pointer hover:bg-accent focus:bg-accent rounded-xl py-2.5"
-                >
-                  {t('no_agent' as TranslationKey) || 'No Agent'}
-                </SelectItem>
-                {agents.map((agent) => (
+            <div className="flex items-center gap-2 bg-muted/30 p-1 sm:p-1.5 rounded-full border border-border/40">
+              <div className="hidden sm:flex items-center justify-center h-8 w-8 rounded-full bg-primary/10 text-primary shrink-0 ml-1">
+                <Sparkles className="h-4 w-4" />
+              </div>
+              <Select
+                value={contact.ai_agent_id || 'none_disable'}
+                onValueChange={handleAgentChange}
+              >
+                <SelectTrigger className="w-[120px] sm:w-[160px] h-8 sm:h-9 rounded-full bg-transparent border-transparent shadow-none font-bold text-[11px] sm:text-[13px] hover:bg-muted/60 transition-colors focus:ring-0 focus:ring-offset-0 px-3">
+                  <SelectValue placeholder={t('no_agent' as TranslationKey) || 'No Agent'} />
+                </SelectTrigger>
+                <SelectContent className="rounded-2xl border-border/60 shadow-elevation">
                   <SelectItem
-                    key={agent.id}
-                    value={agent.id}
-                    className="font-bold text-foreground text-xs sm:text-sm cursor-pointer hover:bg-accent focus:bg-accent rounded-xl py-2.5"
+                    value="none_disable"
+                    className="font-bold text-muted-foreground text-xs sm:text-sm cursor-pointer hover:bg-accent focus:bg-accent rounded-xl py-2.5"
                   >
-                    {agent.name}
+                    {t('no_agent' as TranslationKey) || 'No Agent'}
                   </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+                  {agents.map((agent) => (
+                    <SelectItem
+                      key={agent.id}
+                      value={agent.id}
+                      className="font-bold text-foreground text-xs sm:text-sm cursor-pointer hover:bg-accent focus:bg-accent rounded-xl py-2.5"
+                    >
+                      {agent.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
 

@@ -62,10 +62,7 @@ export function useTeams() {
     const userIds = [...new Set((memberRows ?? []).map((member: any) => member.user_id))]
     const { data: profileRows } =
       userIds.length > 0
-        ? await (supabase as any)
-            .from('profiles')
-            .select('id, full_name, email')
-            .in('id', userIds)
+        ? await (supabase as any).from('profiles').select('id, full_name, email').in('id', userIds)
         : { data: [] }
 
     const profiles = new Map((profileRows ?? []).map((profile: any) => [profile.id, profile]))
@@ -114,17 +111,15 @@ export function useTeams() {
       throw new Error('Usuário não encontrado. Cadastre ou convide esse e-mail primeiro.')
     }
 
-    const { error: membershipError } = await (supabase as any)
-      .from('organization_members')
-      .upsert(
-        {
-          organization_id: organizationId,
-          user_id: profile.id,
-          role: isLeader ? 'team_lead' : 'agent',
-          is_active: true,
-        },
-        { onConflict: 'organization_id,user_id' },
-      )
+    const { error: membershipError } = await (supabase as any).from('organization_members').upsert(
+      {
+        organization_id: organizationId,
+        user_id: profile.id,
+        role: isLeader ? 'team_lead' : 'agent',
+        is_active: true,
+      },
+      { onConflict: 'organization_id,user_id' },
+    )
     if (membershipError) throw membershipError
 
     const { error } = await (supabase as any)
