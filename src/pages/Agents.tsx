@@ -7,6 +7,13 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -19,7 +26,15 @@ import { Plus, Trash2, Edit2, Loader2 } from 'lucide-react'
 import { AIAgent } from '@/lib/types'
 
 export default function Agents() {
-  const { agents, loading, createAgent, updateAgent, deleteAgent, toggleAgentStatus } = useAgents()
+  const {
+    agents,
+    loading,
+    createAgent,
+    updateAgent,
+    deleteAgent,
+    toggleAgentStatus,
+    canConfigure,
+  } = useAgents()
   const { t } = useLanguage()
 
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -30,7 +45,15 @@ export default function Agents() {
     name: '',
     description: '',
     system_prompt: '',
-    gemini_api_key: '',
+    provider: 'openai' as const,
+    model: 'gpt-4.1-mini' as const,
+    agent_type: 'custom' as const,
+    color: '#6366f1',
+    tone: '',
+    objectives: '',
+    restrictions: '',
+    knowledge_base_enabled: false,
+    team_id: null,
     is_active: true,
   })
 
@@ -41,7 +64,15 @@ export default function Agents() {
         name: agent.name,
         description: agent.description || '',
         system_prompt: agent.system_prompt,
-        gemini_api_key: agent.gemini_api_key,
+        provider: 'openai',
+        model: agent.model,
+        agent_type: agent.agent_type,
+        color: agent.color,
+        tone: agent.tone || '',
+        objectives: agent.objectives || '',
+        restrictions: agent.restrictions || '',
+        knowledge_base_enabled: agent.knowledge_base_enabled,
+        team_id: agent.team_id,
         is_active: agent.is_active,
       })
     } else {
@@ -50,7 +81,15 @@ export default function Agents() {
         name: '',
         description: '',
         system_prompt: t('default_system_prompt'),
-        gemini_api_key: '',
+        provider: 'openai',
+        model: 'gpt-4.1-mini',
+        agent_type: 'custom',
+        color: '#6366f1',
+        tone: '',
+        objectives: '',
+        restrictions: '',
+        knowledge_base_enabled: false,
+        team_id: null,
         is_active: true,
       })
     }
@@ -81,13 +120,13 @@ export default function Agents() {
           </h2>
           <p className="text-muted-foreground mt-2 font-medium text-base">{t('agents_desc')}</p>
         </div>
-        <Button
+        {canConfigure && <Button
           onClick={() => handleOpenDialog()}
           className="rounded-full shadow-subtle px-6 h-12 font-semibold"
         >
           <Plus className="mr-2 h-5 w-5" />
           {t('create_agent')}
-        </Button>
+        </Button>}
       </div>
 
       {loading ? (
@@ -99,9 +138,9 @@ export default function Agents() {
           <CardContent className="flex flex-col items-center justify-center p-20 text-center">
             <h3 className="text-xl font-bold text-foreground mb-2">{t('no_agents_title')}</h3>
             <p className="text-muted-foreground max-w-sm mb-6">{t('no_agents_desc')}</p>
-            <Button onClick={() => handleOpenDialog()} variant="outline" className="rounded-full">
+            {canConfigure && <Button onClick={() => handleOpenDialog()} variant="outline" className="rounded-full">
               {t('create_agent')}
-            </Button>
+            </Button>}
           </CardContent>
         </Card>
       ) : (
@@ -123,10 +162,10 @@ export default function Agents() {
                       </CardDescription>
                     </div>
                   </div>
-                  <Switch
+                  {canConfigure && <Switch
                     checked={agent.is_active}
                     onCheckedChange={() => toggleAgentStatus(agent.id, agent.is_active)}
-                  />
+                  />}
                 </div>
               </CardHeader>
               <CardContent className="flex-1 pb-6">
@@ -139,7 +178,7 @@ export default function Agents() {
                   </p>
                 </div>
               </CardContent>
-              <div className="border-t border-border/40 bg-muted/10 p-4 flex justify-end gap-2 shrink-0">
+              {canConfigure && <div className="border-t border-border/40 bg-muted/10 p-4 flex justify-end gap-2 shrink-0">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -157,7 +196,7 @@ export default function Agents() {
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
-              </div>
+              </div>}
             </Card>
           ))}
         </div>
@@ -198,20 +237,91 @@ export default function Agents() {
                   className="rounded-xl h-12"
                 />
               </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-3">
+                  <Label className="font-semibold">Função</Label>
+                  <Select
+                    value={formData.agent_type}
+                    onValueChange={(value: typeof formData.agent_type) =>
+                      setFormData({ ...formData, agent_type: value })
+                    }
+                  >
+                    <SelectTrigger className="rounded-xl h-12">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="marketing">Marketing</SelectItem>
+                      <SelectItem value="sales">Vendas</SelectItem>
+                      <SelectItem value="sdr">SDR / Prospecção</SelectItem>
+                      <SelectItem value="support">Suporte</SelectItem>
+                      <SelectItem value="administrative">Administrativo</SelectItem>
+                      <SelectItem value="custom">Personalizado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-3">
+                  <Label className="font-semibold">Modelo OpenAI</Label>
+                  <Select
+                    value={formData.model}
+                    onValueChange={(value: typeof formData.model) =>
+                      setFormData({ ...formData, model: value })
+                    }
+                  >
+                    <SelectTrigger className="rounded-xl h-12">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="gpt-4.1-mini">GPT-4.1 mini</SelectItem>
+                      <SelectItem value="gpt-4o-mini">GPT-4o mini</SelectItem>
+                      <SelectItem value="gpt-4.1">GPT-4.1</SelectItem>
+                      <SelectItem value="gpt-4o">GPT-4o (legado)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <p className="text-[11px] text-muted-foreground font-medium">
+                A chave OpenAI é configurada uma única vez nos secrets do servidor e nunca fica
+                exposta nesta tela.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-3">
+                  <Label htmlFor="tone" className="font-semibold">Tom de voz</Label>
+                  <Input
+                    id="tone"
+                    value={formData.tone}
+                    onChange={(e) => setFormData({ ...formData, tone: e.target.value })}
+                    placeholder="Consultivo, direto, cordial..."
+                    className="rounded-xl h-12"
+                  />
+                </div>
+                <div className="space-y-3">
+                  <Label htmlFor="color" className="font-semibold">Cor</Label>
+                  <Input
+                    id="color"
+                    type="color"
+                    value={formData.color}
+                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                    className="rounded-xl h-12 p-2"
+                  />
+                </div>
+              </div>
               <div className="space-y-3">
-                <Label htmlFor="api_key" className="font-semibold">
-                  {t('gemini_api_key')}
-                </Label>
-                <Input
-                  id="api_key"
-                  type="password"
-                  required
-                  value={formData.gemini_api_key}
-                  onChange={(e) => setFormData({ ...formData, gemini_api_key: e.target.value })}
-                  placeholder="AIzaSy..."
-                  className="rounded-xl h-12 font-mono text-sm"
+                <Label htmlFor="objectives" className="font-semibold">Objetivos</Label>
+                <Textarea
+                  id="objectives"
+                  value={formData.objectives}
+                  onChange={(e) => setFormData({ ...formData, objectives: e.target.value })}
+                  className="rounded-xl min-h-[90px]"
                 />
-                <p className="text-[11px] text-muted-foreground font-medium">{t('api_key_help')}</p>
+              </div>
+              <div className="space-y-3">
+                <Label htmlFor="restrictions" className="font-semibold">Restrições</Label>
+                <Textarea
+                  id="restrictions"
+                  value={formData.restrictions}
+                  onChange={(e) => setFormData({ ...formData, restrictions: e.target.value })}
+                  className="rounded-xl min-h-[90px]"
+                />
               </div>
               <div className="space-y-3">
                 <Label htmlFor="prompt" className="font-semibold">
@@ -237,6 +347,20 @@ export default function Agents() {
                 <Switch
                   checked={formData.is_active}
                   onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
+                />
+              </div>
+              <div className="flex items-center justify-between p-4 bg-muted/40 rounded-2xl border border-border/60">
+                <div className="space-y-0.5">
+                  <Label className="font-semibold">Base de conhecimento</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Permitir que este agente consulte documentos autorizados.
+                  </p>
+                </div>
+                <Switch
+                  checked={formData.knowledge_base_enabled}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, knowledge_base_enabled: checked })
+                  }
                 />
               </div>
             </div>
