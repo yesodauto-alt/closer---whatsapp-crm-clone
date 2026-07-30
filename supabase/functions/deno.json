@@ -1,17 +1,17 @@
 {
   "_versions": {
-    "ai-classify-contacts": 28,
-    "ai-pipeline-monitor": 28,
-    "evolution-create-instance": 28,
-    "evolution-disconnect": 28,
-    "evolution-get-qr": 28,
-    "evolution-send-message": 28,
-    "evolution-sync-contacts": 28,
-    "evolution-sync-messages": 28,
-    "evolution-webhook": 28,
-    "openai-agent-response": 15,
-    "organization-send-message": 15,
-    "process-scheduled-messages": 15,
-    "send-organization-invite": 15
+    "ai-classify-contacts": 29,
+    "ai-pipeline-monitor": 29,
+    "evolution-create-instance": 29,
+    "evolution-disconnect": 29,
+    "evolution-get-qr": 29,
+    "evolution-send-message": 29,
+    "evolution-sync-contacts": 29,
+    "evolution-sync-messages": 29,
+    "evolution-webhook": 29,
+    "openai-agent-response": 16,
+    "organization-send-message": 16,
+    "process-scheduled-messages": 16,
+    "send-organization-invite": 16
   }
 }
