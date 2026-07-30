@@ -61,6 +61,21 @@ CREATE TABLE IF NOT EXISTS public.team_members (
   UNIQUE (team_id, user_id)
 );
 
+CREATE TABLE IF NOT EXISTS public.organization_invites (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id uuid NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
+  team_id uuid REFERENCES public.teams(id) ON DELETE SET NULL,
+  email text NOT NULL,
+  role public.app_role NOT NULL DEFAULT 'agent',
+  invited_by uuid NOT NULL REFERENCES auth.users(id) ON DELETE RESTRICT,
+  accepted_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  status text NOT NULL DEFAULT 'pending'
+    CHECK (status IN ('pending', 'accepted', 'cancelled', 'expired')),
+  expires_at timestamptz NOT NULL DEFAULT (now() + interval '7 days'),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  accepted_at timestamptz
+);
+
 CREATE TABLE IF NOT EXISTS public.conversation_assignments (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   contact_id uuid NOT NULL REFERENCES public.whatsapp_contacts(id) ON DELETE CASCADE,
@@ -166,6 +181,23 @@ ALTER TABLE public.ai_agents
 COMMENT ON COLUMN public.ai_agents.gemini_api_key IS
   'Legacy column kept temporarily for backward-compatible migrations. Do not use for new agents.';
 
+CREATE TABLE IF NOT EXISTS public.ai_agent_runs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id uuid NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
+  agent_id uuid NOT NULL REFERENCES public.ai_agents(id) ON DELETE CASCADE,
+  contact_id uuid REFERENCES public.whatsapp_contacts(id) ON DELETE SET NULL,
+  requested_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  model text NOT NULL,
+  input_text text NOT NULL,
+  output_text text,
+  input_tokens integer,
+  output_tokens integer,
+  status text NOT NULL DEFAULT 'completed'
+    CHECK (status IN ('completed', 'failed')),
+  error text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
 CREATE OR REPLACE FUNCTION private.is_org_member(target_organization_id uuid)
 RETURNS boolean
 LANGUAGE sql
@@ -237,12 +269,14 @@ ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.organization_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.teams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.team_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.organization_invites ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.conversation_assignments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.assignment_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.opportunities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.opportunity_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.scheduled_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ai_agent_runs ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY organizations_select_member
   ON public.organizations FOR SELECT TO authenticated
@@ -277,6 +311,16 @@ CREATE POLICY profiles_update_self
   ON public.profiles FOR UPDATE TO authenticated
   USING (id = auth.uid())
   WITH CHECK (id = auth.uid());
+
+CREATE POLICY profiles_select_admin_directory
+  ON public.profiles FOR SELECT TO authenticated
+  USING (EXISTS (
+    SELECT 1
+    FROM public.organization_members membership
+    WHERE membership.user_id = auth.uid()
+      AND membership.is_active
+      AND membership.role IN ('super_admin', 'admin')
+  ));
 
 CREATE POLICY organization_members_select_member
   ON public.organization_members FOR SELECT TO authenticated
@@ -332,6 +376,31 @@ CREATE POLICY team_members_manage_admin
         ARRAY['super_admin', 'admin']::public.app_role[]
       )
   ));
+
+CREATE POLICY organization_invites_select_admin
+  ON public.organization_invites FOR SELECT TO authenticated
+  USING (
+    lower(email) = lower(COALESCE(auth.jwt()->>'email', ''))
+    OR private.has_org_role(
+      organization_id,
+      ARRAY['super_admin', 'admin']::public.app_role[]
+    )
+  );
+
+CREATE POLICY organization_invites_manage_admin
+  ON public.organization_invites FOR ALL TO authenticated
+  USING (private.has_org_role(
+    organization_id,
+    ARRAY['super_admin', 'admin']::public.app_role[]
+  ))
+  WITH CHECK (
+    invited_by = auth.uid()
+    AND role <> 'super_admin'
+    AND private.has_org_role(
+      organization_id,
+      ARRAY['super_admin', 'admin']::public.app_role[]
+    )
+  );
 
 CREATE POLICY assignments_select_team
   ON public.conversation_assignments FOR SELECT TO authenticated
@@ -487,6 +556,17 @@ CREATE POLICY ai_agents_manage_organization_admin
     )
   );
 
+CREATE POLICY ai_agent_runs_select_organization
+  ON public.ai_agent_runs FOR SELECT TO authenticated
+  USING (private.is_org_member(organization_id));
+
+CREATE POLICY ai_agent_runs_insert_member
+  ON public.ai_agent_runs FOR INSERT TO authenticated
+  WITH CHECK (
+    requested_by = auth.uid()
+    AND private.is_org_member(organization_id)
+  );
+
 -- Team members may read contacts and messages assigned to one of their teams.
 CREATE POLICY whatsapp_contacts_select_assigned_team
   ON public.whatsapp_contacts FOR SELECT TO authenticated
@@ -512,18 +592,22 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON
   public.organization_members,
   public.teams,
   public.team_members,
+  public.organization_invites,
   public.conversation_assignments,
   public.assignment_history,
   public.products,
   public.opportunities,
   public.opportunity_items,
-  public.scheduled_messages
+  public.scheduled_messages,
+  public.ai_agent_runs
 TO authenticated;
 
 CREATE INDEX IF NOT EXISTS idx_org_members_user
   ON public.organization_members(user_id, organization_id);
 CREATE INDEX IF NOT EXISTS idx_team_members_user
   ON public.team_members(user_id, team_id);
+CREATE INDEX IF NOT EXISTS idx_org_invites_email
+  ON public.organization_invites(lower(email), status);
 CREATE INDEX IF NOT EXISTS idx_assignments_team
   ON public.conversation_assignments(team_id, assigned_user_id);
 CREATE INDEX IF NOT EXISTS idx_products_org_active
@@ -533,6 +617,41 @@ CREATE INDEX IF NOT EXISTS idx_opportunities_org_stage
 CREATE INDEX IF NOT EXISTS idx_scheduled_messages_due
   ON public.scheduled_messages(scheduled_for)
   WHERE status = 'pending';
+CREATE INDEX IF NOT EXISTS idx_ai_agent_runs_agent_created
+  ON public.ai_agent_runs(agent_id, created_at DESC);
+
+CREATE OR REPLACE FUNCTION public.claim_scheduled_messages(batch_size integer DEFAULT 25)
+RETURNS SETOF public.scheduled_messages
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+BEGIN
+  RETURN QUERY
+  WITH due AS (
+    SELECT sm.id
+    FROM public.scheduled_messages sm
+    WHERE sm.status = 'pending'
+      AND sm.scheduled_for <= now()
+      AND sm.attempts < sm.max_attempts
+    ORDER BY sm.scheduled_for
+    FOR UPDATE SKIP LOCKED
+    LIMIT LEAST(GREATEST(batch_size, 1), 100)
+  )
+  UPDATE public.scheduled_messages sm
+  SET status = 'processing',
+      attempts = sm.attempts + 1,
+      updated_at = now()
+  FROM due
+  WHERE sm.id = due.id
+  RETURNING sm.*;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.claim_scheduled_messages(integer) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.claim_scheduled_messages(integer) FROM anon;
+REVOKE ALL ON FUNCTION public.claim_scheduled_messages(integer) FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.claim_scheduled_messages(integer) TO service_role;
 
 -- Ensure profile rows exist for current and future users.
 INSERT INTO public.profiles (id, email, full_name)
@@ -563,6 +682,36 @@ BEGIN
   )
   ON CONFLICT (id) DO UPDATE
   SET email = EXCLUDED.email;
+
+  INSERT INTO public.organization_members (organization_id, user_id, role, is_active)
+  SELECT invite.organization_id, NEW.id, invite.role, true
+  FROM public.organization_invites invite
+  WHERE lower(invite.email) = lower(NEW.email)
+    AND invite.status = 'pending'
+    AND invite.expires_at > now()
+  ON CONFLICT (organization_id, user_id) DO UPDATE
+  SET role = EXCLUDED.role,
+      is_active = true,
+      updated_at = now();
+
+  INSERT INTO public.team_members (team_id, user_id, is_leader)
+  SELECT invite.team_id, NEW.id, invite.role = 'team_lead'
+  FROM public.organization_invites invite
+  WHERE lower(invite.email) = lower(NEW.email)
+    AND invite.status = 'pending'
+    AND invite.expires_at > now()
+    AND invite.team_id IS NOT NULL
+  ON CONFLICT (team_id, user_id) DO UPDATE
+  SET is_leader = EXCLUDED.is_leader;
+
+  UPDATE public.organization_invites
+  SET status = 'accepted',
+      accepted_by = NEW.id,
+      accepted_at = now()
+  WHERE lower(email) = lower(NEW.email)
+    AND status = 'pending'
+    AND expires_at > now();
+
   RETURN NEW;
 END;
 $$;
