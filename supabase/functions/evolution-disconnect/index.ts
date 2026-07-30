@@ -1,69 +1,45 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
-import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
+import { evolutionFetch, jsonResponse, errorResponse } from '../_shared/evolution-api.ts'
+import { createClient } from 'npm:@supabase/supabase-js@2'
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
 
   try {
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) throw new Error('Missing Authorization header')
+    const { instanceName, userId } = await req.json()
 
-    const { integrationId } = await req.json()
-    if (!integrationId) throw new Error('Missing integrationId')
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
-    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') || ''
-
-    const supabase = createClient(supabaseUrl, supabaseKey, {
-      global: { headers: { Authorization: authHeader } },
-    })
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError || !user) throw new Error('Unauthorized')
-
-    const { data: integ } = await supabase
-      .from('user_integrations')
-      .select('*')
-      .eq('id', integrationId)
-      .eq('user_id', user.id)
-      .single()
-    if (!integ) throw new Error('Integration not found')
-
-    const evolutionApiUrlRaw = integ.evolution_api_url || Deno.env.get('EVOLUTION_API_URL') || ''
-    const evolutionApiUrl = evolutionApiUrlRaw.replace(/\/$/, '')
-    const evolutionApiKey = integ.evolution_api_key || Deno.env.get('EVOLUTION_API_KEY') || ''
-    const instanceName = integ.instance_name
-
-    if (instanceName && evolutionApiUrl && evolutionApiKey) {
-      const response = await fetch(`${evolutionApiUrl}/instance/logout/${instanceName}`, {
-        method: 'DELETE',
-        headers: { apikey: evolutionApiKey },
-      })
-
-      if (!response.ok) {
-        const text = await response.text()
-        console.warn(
-          'Failed to logout instance cleanly, proceeding to set as DISCONNECTED anyway. Details:',
-          text,
-        )
-      }
+    if (!instanceName) {
+      return errorResponse('instanceName is required', 400)
     }
 
-    await supabase
-      .from('user_integrations')
-      .update({ status: 'DISCONNECTED' })
-      .eq('id', integrationId)
+    const { data, error, status } = await evolutionFetch(`/instance/logout/${instanceName}`, {
+      method: 'DELETE',
+    })
 
-    return new Response(JSON.stringify({ success: true }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-  } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    if (error) {
+      return errorResponse(error, status)
+    }
+
+    if (userId) {
+      const supabase = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      )
+      await supabase
+        .from('user_integrations')
+        .update({
+          status: 'DISCONNECTED',
+          is_setup_completed: false,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', userId)
+    }
+
+    return jsonResponse({ success: true, data })
+  } catch (err) {
+    return errorResponse(err.message || 'Internal server error', 500)
   }
 })

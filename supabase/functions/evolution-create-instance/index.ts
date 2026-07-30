@@ -1,169 +1,75 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
-import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
+import {
+  evolutionFetch,
+  jsonResponse,
+  errorResponse,
+  getEvolutionConfig,
+} from '../_shared/evolution-api.ts'
+import { createClient } from 'npm:@supabase/supabase-js@2'
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
 
   try {
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) throw new Error('Missing Authorization header')
+    const { instanceName, userId } = await req.json()
 
-    const { integrationId } = await req.json()
-    if (!integrationId) throw new Error('Missing integrationId')
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
-    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') || ''
-    const evolutionApiUrlRaw = Deno.env.get('EVOLUTION_API_URL') || ''
-    const evolutionApiUrl = evolutionApiUrlRaw.replace(/\/$/, '')
-    const evolutionApiKey = Deno.env.get('EVOLUTION_API_KEY') || ''
-
-    if (!evolutionApiUrl || !evolutionApiKey) {
-      throw new Error('Evolution API is not globally configured.')
+    if (!instanceName || !userId) {
+      return errorResponse('instanceName and userId are required', 400)
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey, {
-      global: { headers: { Authorization: authHeader } },
-    })
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError || !user) throw new Error('Unauthorized')
-
-    const { data: integ } = await supabase
-      .from('user_integrations')
-      .select('*')
-      .eq('id', integrationId)
-      .eq('user_id', user.id)
-      .single()
-    if (!integ) {
-      throw new Error('Integration not found')
-    }
-
-    const instanceName = integ.user_id
-
-    if (integ.instance_name !== instanceName) {
-      await supabase
-        .from('user_integrations')
-        .update({ instance_name: instanceName })
-        .eq('id', integrationId)
-    }
-
-    const response = await fetch(`${evolutionApiUrl}/instance/create`, {
+    const { data, error, status } = await evolutionFetch('/instance/create', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        apikey: evolutionApiKey,
-      },
-      body: JSON.stringify({
-        instanceName: instanceName,
-        token: instanceName,
+      body: {
+        instanceName,
         qrcode: true,
         integration: 'WHATSAPP-BAILEYS',
-      }),
+      },
     })
 
-    if (!response.ok) {
-      const text = await response.text()
-      console.warn('Evolution API returned error on create:', text)
-
-      if (
-        response.status === 409 ||
-        text.includes('already exists') ||
-        text.includes('Duplicated instance')
-      ) {
-        const stateRes = await fetch(
-          `${evolutionApiUrl}/instance/connectionState/${instanceName}`,
-          {
-            method: 'GET',
-            headers: { apikey: evolutionApiKey },
-          },
-        )
-
-        if (stateRes.ok) {
-          const stateData = await stateRes.json()
-          if (stateData.instance?.state === 'open' || stateData.state === 'open') {
-            const webhookUrl = `${supabaseUrl}/functions/v1/evolution-webhook`
-            const hookRes = await fetch(`${evolutionApiUrl}/webhook/set/${instanceName}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', apikey: evolutionApiKey },
-              body: JSON.stringify({
-                webhook: {
-                  enabled: true,
-                  url: webhookUrl,
-                  headers: { 'x-webhook-secret': evolutionApiKey },
-                  events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'CONTACTS_UPSERT'],
-                },
-              }),
-            })
-            const isWebhookEnabled = hookRes.ok
-
-            await supabase
-              .from('user_integrations')
-              .update({
-                status: 'CONNECTED',
-                is_webhook_enabled: isWebhookEnabled,
-              } as any)
-              .eq('id', integrationId)
-
-            if (hookRes.ok) console.log(`[WEBHOOK] Proactively configured for ${instanceName}`)
-            else console.warn(`[WEBHOOK] Failed for ${instanceName}:`, await hookRes.text())
-
-            return new Response(JSON.stringify({ success: true, connected: true }), {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            })
-          }
-        }
-      }
-
-      return new Response(
-        JSON.stringify({ error: `Evolution Create failed (${response.status}): ${text}` }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        },
-      )
+    if (error) {
+      return errorResponse(error, status)
     }
 
-    // After successfully creating instance, configure webhook
-    const webhookUrl = `${supabaseUrl}/functions/v1/evolution-webhook`
-    const webhookRes = await fetch(`${evolutionApiUrl}/webhook/set/${instanceName}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', apikey: evolutionApiKey },
-      body: JSON.stringify({
-        webhook: {
-          enabled: true,
-          url: webhookUrl,
-          headers: { 'x-webhook-secret': evolutionApiKey },
-          events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'CONTACTS_UPSERT'],
-        },
-      }),
-    })
+    const config = getEvolutionConfig()
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    )
 
-    let isWebhookEnabled = false
-    if (webhookRes.ok) {
-      isWebhookEnabled = true
-      console.log(`[WEBHOOK] Configured successfully for ${instanceName}`)
-    } else {
-      console.warn(`[WEBHOOK] Failed to set webhook for ${instanceName}:`, await webhookRes.text())
-    }
-
-    await supabase
+    const { data: existing } = await supabase
       .from('user_integrations')
-      .update({
-        status: 'WAITING_QR',
-        is_webhook_enabled: isWebhookEnabled,
-      } as any)
-      .eq('id', integrationId)
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle()
 
-    return new Response(JSON.stringify({ success: true }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-  } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    if (existing) {
+      await supabase
+        .from('user_integrations')
+        .update({
+          instance_name: instanceName,
+          evolution_api_url: config.baseUrl,
+          evolution_api_key: config.apiKey,
+          status: 'CONNECTING',
+          is_setup_completed: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existing.id)
+    } else {
+      await supabase.from('user_integrations').insert({
+        user_id: userId,
+        instance_name: instanceName,
+        evolution_api_url: config.baseUrl,
+        evolution_api_key: config.apiKey,
+        status: 'CONNECTING',
+        is_setup_completed: true,
+      })
+    }
+
+    return jsonResponse({ success: true, data })
+  } catch (err) {
+    return errorResponse(err.message || 'Internal server error', 500)
   }
 })
