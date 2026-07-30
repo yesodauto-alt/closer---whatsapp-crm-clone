@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AuthProvider } from '@/hooks/use-auth'
@@ -15,10 +15,11 @@ import Pipeline from './pages/Pipeline'
 import Settings from './pages/Settings'
 import Chat from './pages/Chat'
 import Agents from './pages/Agents'
-import NotFound from './pages/NotFound'
-import Onboarding from './pages/Onboarding'
 import Products from './pages/Products'
 import Teams from './pages/Teams'
+import NotFound from './pages/NotFound'
+import Onboarding from './pages/Onboarding'
+import { Channels, ModulePage, Priorities } from './pages/Workspace'
 
 const App = () => (
   <LanguageProvider>
@@ -38,21 +39,23 @@ const App = () => (
                 <Route path="onboarding" element={<Onboarding />} />
                 <Route path="pipeline" element={<Pipeline />} />
                 <Route path="contacts" element={<Contacts />} />
+                <Route path="conversations" element={<Contacts />} />
                 <Route path="chat/:id" element={<Chat />} />
+                <Route path="priorities" element={<Priorities />} />
+                <Route path="channels" element={<Channels />} />
                 <Route path="agents" element={<Agents />} />
                 <Route path="products" element={<Products />} />
                 <Route path="teams" element={<Teams />} />
+                <Route path="support" element={<ModulePage title="Suporte" />} />
+                <Route path="automations" element={<ModulePage title="Automações" />} />
+                <Route path="templates" element={<ModulePage title="Templates" />} />
+                <Route path="profile" element={<ModulePage title="Perfil" />} />
               </Route>
 
               <Route path="/settings" element={<DashboardLayout />}>
                 <Route index element={<Settings />} />
               </Route>
 
-              <Route path="/dashboard" element={<Navigate to="/app" replace />} />
-              <Route path="/products" element={<Navigate to="/app/products" replace />} />
-              <Route path="/teams" element={<Navigate to="/app/teams" replace />} />
-              <Route path="/agents" element={<Navigate to="/app/agents" replace />} />
-              <Route path="/chat" element={<Navigate to="/app/contacts" replace />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </TooltipProvider>

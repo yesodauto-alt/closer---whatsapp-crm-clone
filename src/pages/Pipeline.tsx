@@ -113,7 +113,7 @@ export default function Pipeline() {
                 handleMoveContact(e.dataTransfer.getData('contactId'), stage.id)
               }}
               className={cn(
-                'flex flex-col w-[320px] md:w-[340px] shrink-0 snap-center bg-muted/30 rounded-[2rem] border border-border/60 overflow-hidden transition-all duration-200',
+                'flex flex-col w-[320px] md:w-[340px] shrink-0 snap-center bg-muted/30 rounded-xl border border-border/60 overflow-hidden transition-all duration-200',
                 dragOverColumn === stage.id && 'bg-muted/60 ring-2 ring-primary/20 scale-[1.01]',
               )}
             >

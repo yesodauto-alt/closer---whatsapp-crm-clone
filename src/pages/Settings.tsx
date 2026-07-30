@@ -110,7 +110,7 @@ export default function Settings() {
       </div>
 
       <div className="space-y-6">
-        <Card className="shadow-subtle border border-border/40 rounded-[2rem] bg-card overflow-hidden">
+        <Card className="shadow-subtle border border-border/40 rounded-xl bg-card overflow-hidden">
           <CardHeader className="pb-6 pt-8 px-8 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
             <div className="space-y-2">
               <CardTitle className="flex items-center gap-3 text-xl tracking-tight">

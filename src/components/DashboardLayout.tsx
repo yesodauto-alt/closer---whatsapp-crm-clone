@@ -45,8 +45,10 @@ export default function DashboardLayout() {
       <Sidebar />
       <div className="flex flex-col flex-1 relative w-full max-w-full">
         <Header />
-        <main className="flex-1 overflow-y-auto w-full pb-20 md:pb-0 animate-in fade-in duration-500 ease-apple">
-          <Outlet />
+        <main className="flex-1 overflow-y-auto w-full pb-20 md:pb-0">
+          <div className="mx-auto max-w-7xl p-4 md:p-6 lg:p-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <Outlet />
+          </div>
         </main>
         <BottomNav />
       </div>

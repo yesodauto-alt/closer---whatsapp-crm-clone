@@ -165,10 +165,10 @@ export default function Dashboard() {
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
 
   return (
-    <div className="max-w-7xl mx-auto space-y-10 p-6 md:p-12 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-apple bg-background min-h-full">
+    <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
-          <h2 className="text-4xl font-bold tracking-tight text-foreground">{t('overview')}</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">{t('overview')}</h2>
           <p className="text-muted-foreground mt-2 font-medium text-base">{t('crm_health')}</p>
         </div>
         <Button
@@ -226,7 +226,7 @@ export default function Dashboard() {
                 <Users className="h-5 w-5" />
               </div>
             </div>
-            <div className="text-5xl font-bold tracking-tighter text-foreground">
+            <div className="text-3xl font-bold tracking-tight text-foreground">
               {loading ? '-' : totalContacts}
             </div>
           </CardContent>
@@ -241,7 +241,7 @@ export default function Dashboard() {
                 <Flame className="h-5 w-5" />
               </div>
             </div>
-            <div className="text-5xl font-bold tracking-tighter text-foreground">
+            <div className="text-3xl font-bold tracking-tight text-foreground">
               {loading ? '-' : hotLeads}
             </div>
           </CardContent>
@@ -256,7 +256,7 @@ export default function Dashboard() {
                 <Activity className="h-5 w-5" />
               </div>
             </div>
-            <div className="text-5xl font-bold tracking-tighter text-foreground">
+            <div className="text-3xl font-bold tracking-tight text-foreground">
               {loading && contacts.length === 0 ? '-' : avgScore}
             </div>
           </CardContent>
@@ -271,7 +271,7 @@ export default function Dashboard() {
                 <MessageSquare className="h-5 w-5" />
               </div>
             </div>
-            <div className="text-5xl font-bold tracking-tighter text-foreground">
+            <div className="text-3xl font-bold tracking-tight text-foreground">
               {loading ? '-' : activeRecently}
             </div>
           </CardContent>

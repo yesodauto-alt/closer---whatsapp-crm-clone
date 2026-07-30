@@ -48,10 +48,10 @@ export default function Contacts() {
   }, [contacts, activeTab])
 
   return (
-    <div className="max-w-7xl mx-auto space-y-10 p-6 md:p-12 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-apple min-h-full bg-background">
+    <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
-          <h2 className="text-4xl font-bold tracking-tight text-foreground">{t('contacts')}</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">{t('contacts')}</h2>
           <p className="text-muted-foreground mt-2 font-medium text-base">{t('manage_network')}</p>
         </div>
         <div className="relative w-full md:w-96">
@@ -92,11 +92,11 @@ export default function Contacts() {
 
       <div className="w-full">
         {loading ? (
-          <div className="p-24 flex justify-center bg-card rounded-[2.5rem] border border-border shadow-subtle">
+          <div className="p-24 flex justify-center bg-card rounded-xl border border-border shadow-subtle">
             <Loader2 className="h-10 w-10 animate-spin text-muted-foreground/50" />
           </div>
         ) : filteredContacts.length === 0 ? (
-          <div className="text-center py-32 bg-card rounded-[2.5rem] border border-border shadow-subtle">
+          <div className="text-center py-32 bg-card rounded-xl border border-border shadow-subtle">
             <div className="bg-muted w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
               <UserRound className="h-10 w-10 text-muted-foreground" />
             </div>
@@ -116,7 +116,7 @@ export default function Contacts() {
             {filteredContacts.map((contact) => (
               <div
                 key={contact.id}
-                className="group relative flex flex-col bg-card rounded-[2rem] p-6 border border-border/60 shadow-subtle hover:shadow-elevation transition-all duration-300 hover:-translate-y-1.5 cursor-pointer overflow-hidden"
+                className="group relative flex flex-col bg-card rounded-xl p-6 border border-border/60 shadow-subtle hover:shadow-elevation transition-all duration-300 hover:-translate-y-1.5 cursor-pointer overflow-hidden"
                 onClick={() => navigate(`/app/chat/${contact.id}`)}
               >
                 <div className="flex justify-between items-start mb-5">
