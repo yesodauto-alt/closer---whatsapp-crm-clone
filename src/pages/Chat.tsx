@@ -15,11 +15,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { ArrowLeft, Send, Sparkles, Loader2 } from 'lucide-react'
+import { ArrowLeft, CalendarClock, Send, Sparkles, Loader2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { format, isToday, isYesterday } from 'date-fns'
 import { ptBR, enUS } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { useScheduledMessages } from '@/hooks/use-scheduled-messages'
+import { useConversationAssignment } from '@/hooks/use-conversation-assignment'
 
 export default function Chat() {
   const { id } = useParams()
@@ -34,7 +45,13 @@ export default function Chat() {
   const [loading, setLoading] = useState(true)
   const [newMessage, setNewMessage] = useState('')
   const [isSending, setIsSending] = useState(false)
+  const [scheduleOpen, setScheduleOpen] = useState(false)
+  const [scheduleDate, setScheduleDate] = useState('')
+  const [scheduleText, setScheduleText] = useState('')
+  const [isScheduling, setIsScheduling] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const { scheduledMessages, schedule, cancel } = useScheduledMessages(id)
+  const { teams, assignment, canAssign, assignTeam } = useConversationAssignment(id)
 
   useEffect(() => {
     if (!user || !id) return
@@ -121,7 +138,7 @@ export default function Chat() {
     setIsSending(true)
 
     try {
-      const { data, error } = await supabase.functions.invoke('evolution-send-message', {
+      const { data, error } = await supabase.functions.invoke('organization-send-message', {
         body: { contactId: contact.id, text },
       })
       if (error) throw error
@@ -130,6 +147,22 @@ export default function Chat() {
       toast.error(err.message || 'Failed to send message')
     } finally {
       setIsSending(false)
+    }
+  }
+
+  const handleSchedule = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!scheduleText.trim() || !scheduleDate) return
+    setIsScheduling(true)
+    try {
+      await schedule(scheduleText, new Date(scheduleDate))
+      setScheduleText('')
+      setScheduleDate('')
+      setScheduleOpen(false)
+    } catch (error: any) {
+      toast.error(error?.message || 'Não foi possível agendar')
+    } finally {
+      setIsScheduling(false)
     }
   }
 
@@ -208,7 +241,29 @@ export default function Chat() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 bg-muted/30 p-1 sm:p-1.5 rounded-full border border-border/40 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
+            {canAssign && teams.length > 0 && (
+              <Select
+                value={assignment?.team_id}
+                onValueChange={(teamId) =>
+                  assignTeam(teamId).catch((error) =>
+                    toast.error(error?.message || 'Não foi possível atribuir a conversa'),
+                  )
+                }
+              >
+                <SelectTrigger className="hidden h-10 w-[150px] rounded-full sm:flex">
+                  <SelectValue placeholder="Atribuir equipe" />
+                </SelectTrigger>
+                <SelectContent>
+                  {teams.map((team) => (
+                    <SelectItem key={team.id} value={team.id}>
+                      {team.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          <div className="flex items-center gap-2 bg-muted/30 p-1 sm:p-1.5 rounded-full border border-border/40">
             <div className="hidden sm:flex items-center justify-center h-8 w-8 rounded-full bg-primary/10 text-primary shrink-0 ml-1">
               <Sparkles className="h-4 w-4" />
             </div>
@@ -234,6 +289,7 @@ export default function Chat() {
                 ))}
               </SelectContent>
             </Select>
+          </div>
           </div>
         </div>
 
@@ -303,6 +359,38 @@ export default function Chat() {
 
         {/* Input */}
         <div className="p-3 sm:p-5 bg-background/50 backdrop-blur-xl border-t border-border/40 shrink-0 z-10">
+          {scheduledMessages.length > 0 && (
+            <div className="mb-3 space-y-2">
+              {scheduledMessages.map((scheduled) => (
+                <div
+                  key={scheduled.id}
+                  className="flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold">{scheduled.text}</p>
+                    <p>
+                      {new Date(scheduled.scheduled_for).toLocaleString('pt-BR')} ·{' '}
+                      {scheduled.status}
+                    </p>
+                  </div>
+                  {scheduled.status === 'pending' && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() =>
+                        cancel(scheduled.id).catch(() =>
+                          toast.error('Não foi possível cancelar o agendamento'),
+                        )
+                      }
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
           <form onSubmit={handleSendMessage} className="flex gap-2.5 sm:gap-3 items-end">
             <div className="relative flex-1">
               <Input
@@ -312,6 +400,18 @@ export default function Chat() {
                 className="w-full bg-card border-border shadow-sm rounded-2xl sm:rounded-full h-12 sm:h-14 px-5 sm:px-6 text-[14px] sm:text-[15px] font-medium pr-12 focus-visible:ring-primary/20 transition-all"
               />
             </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-12 w-12 sm:h-14 sm:w-14 rounded-2xl sm:rounded-full shrink-0"
+              onClick={() => {
+                setScheduleText(newMessage)
+                setScheduleOpen(true)
+              }}
+            >
+              <CalendarClock className="h-5 w-5" />
+            </Button>
             <Button
               type="submit"
               disabled={isSending || !newMessage.trim()}
@@ -327,6 +427,47 @@ export default function Chat() {
           </form>
         </div>
       </div>
+
+      <Dialog open={scheduleOpen} onOpenChange={setScheduleOpen}>
+        <DialogContent className="rounded-3xl">
+          <form onSubmit={handleSchedule}>
+            <DialogHeader>
+              <DialogTitle>Agendar mensagem</DialogTitle>
+              <DialogDescription>
+                A mensagem será colocada na fila e enviada pela integração Evolution.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-5 py-6">
+              <div className="space-y-2">
+                <Label>Mensagem</Label>
+                <Input
+                  required
+                  value={scheduleText}
+                  onChange={(event) => setScheduleText(event.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Data e hora</Label>
+                <Input
+                  required
+                  type="datetime-local"
+                  value={scheduleDate}
+                  onChange={(event) => setScheduleDate(event.target.value)}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setScheduleOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isScheduling}>
+                {isScheduling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Agendar
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
