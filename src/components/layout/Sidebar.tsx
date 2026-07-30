@@ -36,7 +36,12 @@ export function Sidebar() {
     { name: 'Equipes', path: '/app/teams', icon: Users, roles: ['super_admin', 'admin'] },
     { name: 'Suporte', path: '/app/support', icon: LifeBuoy },
     { name: 'IA Assistente', path: '/app/agents', icon: Bot },
-    { name: 'Automações', path: '/app/automations', icon: Workflow, roles: ['super_admin', 'admin'] },
+    {
+      name: 'Automações',
+      path: '/app/automations',
+      icon: Workflow,
+      roles: ['super_admin', 'admin'],
+    },
     { name: 'Templates', path: '/app/templates', icon: FileText },
     { name: 'Configurações', path: '/settings', icon: SettingsIcon, roles: ['super_admin'] },
     { name: 'Perfil', path: '/app/profile', icon: User },
@@ -80,7 +85,9 @@ export function Sidebar() {
         })}
       </nav>
       <div className="border-t border-border p-4 text-xs text-muted-foreground">
-        <p className="truncate font-semibold text-foreground">{organization?.name || 'Yesod CRM'}</p>
+        <p className="truncate font-semibold text-foreground">
+          {organization?.name || 'Yesod CRM'}
+        </p>
         <p className="truncate">Inteligência comercial</p>
       </div>
     </aside>

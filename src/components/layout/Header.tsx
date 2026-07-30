@@ -60,7 +60,10 @@ export function Header() {
         </div>
         <div className="relative hidden w-full max-w-md md:block">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input className="h-10 bg-background pl-9 shadow-sm" placeholder="Buscar contatos, conversas e produtos..." />
+          <Input
+            className="h-10 bg-background pl-9 shadow-sm"
+            placeholder="Buscar contatos, conversas e produtos..."
+          />
         </div>
         <div className="flex items-center gap-2 text-[11px] font-bold text-foreground bg-muted/50 px-3 py-2 rounded-full border border-border">
           <div className={cn('h-2.5 w-2.5 rounded-full', getStatusColor(integration?.status))} />
