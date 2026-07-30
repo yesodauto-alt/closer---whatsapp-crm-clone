@@ -1,6 +1,13 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useLanguage } from '@/hooks/use-language'
-import { LayoutDashboard, Users, Settings as SettingsIcon, Bot, Columns } from 'lucide-react'
+import {
+  Bot,
+  Columns,
+  LayoutDashboard,
+  Package,
+  Settings as SettingsIcon,
+  Users,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import closerLogo from '@/assets/closer_logo-fcd09.png'
 
@@ -12,6 +19,7 @@ export function Sidebar() {
     { name: t('overview_nav') || 'Overview', path: '/app', icon: LayoutDashboard },
     { name: t('pipeline_nav') || 'Pipeline', path: '/app/pipeline', icon: Columns },
     { name: t('contacts_nav') || 'Contacts', path: '/app/contacts', icon: Users },
+    { name: 'Produtos', path: '/app/products', icon: Package },
     { name: 'AI Agents', path: '/app/agents', icon: Bot },
     { name: t('settings_nav') || 'Settings', path: '/settings', icon: SettingsIcon },
   ]
