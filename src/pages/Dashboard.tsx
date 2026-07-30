@@ -6,7 +6,18 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { RefreshCw, Loader2, Users, Flame, Activity, ArrowRight, MessageSquare } from 'lucide-react'
+import {
+  RefreshCw,
+  Loader2,
+  Users,
+  Flame,
+  Activity,
+  ArrowRight,
+  MessageSquare,
+  DollarSign,
+  Package,
+  TrendingUp,
+} from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR, enUS } from 'date-fns/locale'
@@ -19,6 +30,7 @@ import {
   ChartConfig,
 } from '@/components/ui/chart'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Cell } from 'recharts'
+import { useFinancialDashboard } from '@/hooks/use-financial-dashboard'
 
 export const getBadgeColor = (classification: string | null) => {
   switch (classification) {
@@ -49,6 +61,7 @@ export default function Dashboard() {
   } | null>(null)
 
   const { contacts, loading } = useContacts('')
+  const financial = useFinancialDashboard()
   const navigate = useNavigate()
 
   const pollJob = async (jobId: string, stepName: string) => {
@@ -147,6 +160,9 @@ export default function Dashboard() {
   const chartConfig = {
     count: { label: t('contacts') },
   } satisfies ChartConfig
+
+  const money = (value: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
 
   return (
     <div className="max-w-7xl mx-auto space-y-10 p-6 md:p-12 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-apple bg-background min-h-full">
@@ -260,6 +276,52 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-2xl font-bold tracking-tight">Visão financeira</h3>
+            <p className="text-sm text-muted-foreground">
+              Valores calculados a partir das oportunidades e produtos cadastrados.
+            </p>
+          </div>
+          <Button variant="ghost" onClick={() => navigate('/app/products')}>
+            Ver produtos <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {[
+            {
+              label: 'Valor do pipeline',
+              value: money(financial.pipelineValue),
+              icon: TrendingUp,
+            },
+            { label: 'Receita ganha', value: money(financial.wonValue), icon: DollarSign },
+            { label: 'Ticket médio', value: money(financial.ticketAverage), icon: Activity },
+            {
+              label: 'Produtos ativos',
+              value: String(financial.productCount),
+              icon: Package,
+            },
+          ].map((metric) => (
+            <Card key={metric.label}>
+              <CardContent className="p-6">
+                <div className="mb-5 flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    {metric.label}
+                  </span>
+                  <div className="rounded-full bg-muted p-3">
+                    <metric.icon className="h-5 w-5" />
+                  </div>
+                </div>
+                <p className="text-2xl font-bold tracking-tight">
+                  {financial.loading ? '-' : metric.value}
+                </p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
 
       <div className="grid md:grid-cols-3 gap-6 pb-8">

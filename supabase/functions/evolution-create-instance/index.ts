@@ -6,11 +6,14 @@ Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) throw new Error('Missing Authorization header')
+
     const { integrationId } = await req.json()
     if (!integrationId) throw new Error('Missing integrationId')
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') || ''
     const evolutionApiUrlRaw = Deno.env.get('EVOLUTION_API_URL') || ''
     const evolutionApiUrl = evolutionApiUrlRaw.replace(/\/$/, '')
     const evolutionApiKey = Deno.env.get('EVOLUTION_API_KEY') || ''
@@ -19,12 +22,20 @@ Deno.serve(async (req: Request) => {
       throw new Error('Evolution API is not globally configured.')
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      global: { headers: { Authorization: authHeader } },
+    })
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
+    if (userError || !user) throw new Error('Unauthorized')
 
     const { data: integ } = await supabase
       .from('user_integrations')
       .select('*')
       .eq('id', integrationId)
+      .eq('user_id', user.id)
       .single()
     if (!integ) {
       throw new Error('Integration not found')
@@ -81,6 +92,7 @@ Deno.serve(async (req: Request) => {
                 webhook: {
                   enabled: true,
                   url: webhookUrl,
+                  headers: { 'x-webhook-secret': evolutionApiKey },
                   events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'CONTACTS_UPSERT'],
                 },
               }),
@@ -123,6 +135,7 @@ Deno.serve(async (req: Request) => {
         webhook: {
           enabled: true,
           url: webhookUrl,
+          headers: { 'x-webhook-secret': evolutionApiKey },
           events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'CONTACTS_UPSERT'],
         },
       }),

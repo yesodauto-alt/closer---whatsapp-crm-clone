@@ -309,8 +309,6 @@ Deno.serve(async (req: Request) => {
             processed_items: totalProcessed,
           })
           .eq('id', job.id)
-
-        await supabaseClient.functions.invoke('ai-classify-contacts', {})
       } catch (jobError) {
         console.error('[Background] Message sync failed:', jobError)
         await supabaseClient.from('import_jobs').update({ status: 'failed' }).eq('id', job.id)

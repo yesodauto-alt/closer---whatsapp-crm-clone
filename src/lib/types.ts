@@ -13,11 +13,51 @@ export interface UserIntegration {
 export interface AIAgent {
   id: string
   user_id: string
+  organization_id: string | null
   name: string
   description: string | null
   system_prompt: string
-  gemini_api_key: string
+  provider: 'openai'
+  model: 'gpt-4.1-mini' | 'gpt-4o-mini' | 'gpt-4.1' | 'gpt-4o'
+  agent_type: 'marketing' | 'sales' | 'sdr' | 'support' | 'administrative' | 'custom'
+  color: string
+  tone: string | null
+  objectives: string | null
+  restrictions: string | null
+  knowledge_base_enabled: boolean
+  team_id: string | null
   is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type AppRole = 'super_admin' | 'admin' | 'team_lead' | 'agent'
+
+export interface OrganizationMembership {
+  organization_id: string
+  role: AppRole
+  organization: {
+    id: string
+    name: string
+    slug: string
+  }
+}
+
+export interface Product {
+  id: string
+  organization_id: string
+  item_type: 'product' | 'service'
+  sku: string | null
+  name: string
+  description: string | null
+  category: string | null
+  unit: string
+  cost: number
+  price: number
+  currency: string
+  image_url: string | null
+  is_active: boolean
+  created_by: string
   created_at: string
   updated_at: string
 }

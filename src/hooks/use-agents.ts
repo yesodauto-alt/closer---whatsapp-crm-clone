@@ -1,21 +1,26 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { useAuth } from './use-auth'
+import { useOrganization } from './use-organization'
 import { AIAgent } from '@/lib/types'
 import { toast } from 'sonner'
 
 export const useAgents = () => {
   const { user } = useAuth()
+  const { organizationId, canConfigure, loading: organizationLoading } = useOrganization()
   const [agents, setAgents] = useState<AIAgent[]>([])
   const [loading, setLoading] = useState(true)
 
   const fetchAgents = useCallback(async () => {
-    if (!user) return
+    if (!user || !organizationId) {
+      if (!organizationLoading) setLoading(false)
+      return
+    }
     setLoading(true)
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('ai_agents')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('organization_id', organizationId)
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -25,22 +30,31 @@ export const useAgents = () => {
       setAgents(data as AIAgent[])
     }
     setLoading(false)
-  }, [user])
+  }, [user, organizationId, organizationLoading])
 
   useEffect(() => {
     fetchAgents()
   }, [fetchAgents])
 
   const createAgent = async (agent: Partial<AIAgent>) => {
-    if (!user) return
-    const { data, error } = await supabase
+    if (!user || !organizationId || !canConfigure) return
+    const { data, error } = await (supabase as any)
       .from('ai_agents')
       .insert({
         user_id: user.id,
+        organization_id: organizationId,
         name: agent.name!,
         description: agent.description,
         system_prompt: agent.system_prompt!,
-        gemini_api_key: agent.gemini_api_key!,
+        provider: 'openai',
+        model: agent.model || 'gpt-4.1-mini',
+        agent_type: agent.agent_type || 'custom',
+        color: agent.color || '#6366f1',
+        tone: agent.tone,
+        objectives: agent.objectives,
+        restrictions: agent.restrictions,
+        knowledge_base_enabled: agent.knowledge_base_enabled || false,
+        team_id: agent.team_id,
         is_active: agent.is_active,
       })
       .select()
@@ -58,19 +72,27 @@ export const useAgents = () => {
   }
 
   const updateAgent = async (id: string, agent: Partial<AIAgent>) => {
-    if (!user) return
-    const { data, error } = await supabase
+    if (!user || !canConfigure) return
+    const { data, error } = await (supabase as any)
       .from('ai_agents')
       .update({
         name: agent.name,
         description: agent.description,
         system_prompt: agent.system_prompt,
-        gemini_api_key: agent.gemini_api_key,
+        provider: 'openai',
+        model: agent.model,
+        agent_type: agent.agent_type,
+        color: agent.color,
+        tone: agent.tone,
+        objectives: agent.objectives,
+        restrictions: agent.restrictions,
+        knowledge_base_enabled: agent.knowledge_base_enabled,
+        team_id: agent.team_id,
         is_active: agent.is_active,
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
-      .eq('user_id', user.id)
+      .eq('organization_id', organizationId)
       .select()
       .single()
 
@@ -86,8 +108,12 @@ export const useAgents = () => {
   }
 
   const deleteAgent = async (id: string) => {
-    if (!user) return
-    const { error } = await supabase.from('ai_agents').delete().eq('id', id).eq('user_id', user.id)
+    if (!user || !canConfigure) return
+    const { error } = await (supabase as any)
+      .from('ai_agents')
+      .delete()
+      .eq('id', id)
+      .eq('organization_id', organizationId)
 
     if (error) {
       console.error('Error deleting agent:', error)
@@ -100,13 +126,13 @@ export const useAgents = () => {
   }
 
   const toggleAgentStatus = async (id: string, currentStatus: boolean) => {
-    if (!user) return
+    if (!user || !canConfigure) return
     const newStatus = !currentStatus
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('ai_agents')
       .update({ is_active: newStatus, updated_at: new Date().toISOString() })
       .eq('id', id)
-      .eq('user_id', user.id)
+      .eq('organization_id', organizationId)
 
     if (error) {
       console.error('Error toggling agent status:', error)
@@ -125,5 +151,6 @@ export const useAgents = () => {
     updateAgent,
     deleteAgent,
     toggleAgentStatus,
+    canConfigure,
   }
 }

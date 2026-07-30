@@ -17,9 +17,14 @@ CREATE OR REPLACE FUNCTION public.merge_whatsapp_contacts(
 )
 RETURNS VOID
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY INVOKER
+SET search_path = ''
 AS $$
 BEGIN
+    IF auth.uid() IS DISTINCT FROM p_user_id THEN
+        RAISE EXCEPTION 'Not authorized to merge contacts';
+    END IF;
+
     -- Re-assign messages to the primary contact
     UPDATE public.whatsapp_messages
     SET contact_id = p_primary_contact_id
@@ -32,3 +37,7 @@ BEGIN
       AND id = ANY(p_secondary_contact_ids);
 END;
 $$;
+
+REVOKE ALL ON FUNCTION public.merge_whatsapp_contacts(uuid, uuid, uuid[]) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.merge_whatsapp_contacts(uuid, uuid, uuid[]) FROM anon;
+GRANT EXECUTE ON FUNCTION public.merge_whatsapp_contacts(uuid, uuid, uuid[]) TO authenticated;

@@ -63,42 +63,4 @@ CREATE POLICY "Users can manage their own contacts" ON public.whatsapp_contacts 
 CREATE POLICY "Users can manage their own messages" ON public.whatsapp_messages FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "Users can manage their own import jobs" ON public.import_jobs FOR ALL USING (auth.uid() = user_id);
 
--- Seed Demo Data
-DO $$
-DECLARE
-  demo_user_id UUID := '11111111-1111-1111-1111-111111111111'::uuid;
-  contact1_id UUID := gen_random_uuid();
-  contact2_id UUID := gen_random_uuid();
-BEGIN
-  -- Insert demo user if not exists
-  IF NOT EXISTS (SELECT 1 FROM auth.users WHERE id = demo_user_id) THEN
-    INSERT INTO auth.users (
-      id, instance_id, email, encrypted_password, email_confirmed_at,
-      created_at, updated_at, raw_app_meta_data, raw_user_meta_data,
-      is_super_admin, role, aud,
-      confirmation_token, recovery_token, email_change_token_new,
-      email_change, email_change_token_current,
-      phone, phone_change, phone_change_token, reauthentication_token
-    ) VALUES (
-      demo_user_id, '00000000-0000-0000-0000-000000000000', 'demo@warmmarket.app', crypt('Demo1234!', gen_salt('bf')), NOW(), NOW(), NOW(), '{"provider": "email", "providers": ["email"]}', '{"name": "Demo User"}', false, 'authenticated', 'authenticated',
-      '', '', '', '', '', NULL, '', '', ''
-    );
-    
-    -- Insert Mock Integration
-    INSERT INTO public.user_integrations (user_id, instance_name, status)
-    VALUES (demo_user_id, 'demo_instance', 'CONNECTED');
-
-    -- Insert Mock Contacts
-    INSERT INTO public.whatsapp_contacts (id, user_id, remote_jid, push_name, profile_picture_url, last_message_at)
-    VALUES 
-      (contact1_id, demo_user_id, '5511999999999@s.whatsapp.net', 'Alex (Lead)', 'https://img.usecurling.com/ppl/thumbnail?seed=1', NOW() - INTERVAL '10 minutes'),
-      (contact2_id, demo_user_id, '5511888888888@s.whatsapp.net', 'Sarah Designer', 'https://img.usecurling.com/ppl/thumbnail?seed=2', NOW() - INTERVAL '2 hours');
-
-    -- Insert Mock Messages
-    INSERT INTO public.whatsapp_messages (user_id, contact_id, message_id, from_me, text, timestamp)
-    VALUES
-      (demo_user_id, contact1_id, 'MSG1', false, 'Hey, are we still on for tomorrow?', NOW() - INTERVAL '10 minutes'),
-      (demo_user_id, contact1_id, 'MSG2', true, 'Yes! I will send the link.', NOW() - INTERVAL '5 minutes'),
-      (demo_user_id, contact2_id, 'MSG3', false, 'Here is the new logo draft.', NOW() - INTERVAL '2 hours');
-  END IF;
-END $$;
+-- Production starts without demo credentials or synthetic CRM data.

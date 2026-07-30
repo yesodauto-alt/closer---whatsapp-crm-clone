@@ -1,6 +1,7 @@
-# Projeto Criado com o Skip
+# Yesod CRM
 
-Este projeto foi criado de ponta a ponta com o [Skip](https://goskip.dev).
+CRM omnichannel da Yesod Automation. A aplicação utiliza React/Vite no frontend,
+Supabase no backend e preserva a integração Evolution existente neste repositório.
 
 ## 🚀 Stack Tecnológica
 
